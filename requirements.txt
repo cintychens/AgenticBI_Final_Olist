@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+sqlalchemy
+pymysql
+plotly
+openai
+matplotlib
+wordcloud
+scikit-learn
+prophet
+textblob
+nltk

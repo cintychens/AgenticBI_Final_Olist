@@ -1,0 +1,15 @@
+config/settings.py
+data/*.csv
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+.env
+.env.*
+!.env.example
+.vscode/
