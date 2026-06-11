@@ -238,9 +238,19 @@ def analyze_question_with_trace(question):
             "data": negative_reviews,
         }
 
+        negative_category_data = query_top_negative_categories()
+
+        queries["top_negative_categories"] = {
+            "view": "orders+order_items+products+order_reviews",
+            "sql": "top 10 negative review categories",
+            "data": negative_category_data,
+        }
+
         print("[INFO] Positive WordCloud Loaded")
 
         print("[INFO] Negative WordCloud Loaded")
+
+        print("[INFO] Top Negative Categories Loaded")
 
     # =====================
     # 配送分析 -> 重量运费散点图
@@ -260,7 +270,17 @@ def analyze_question_with_trace(question):
                 "data": scatter_data,
             }
 
+            dimension_data = query_dimension_freight_analysis()
+
+            queries["dimension_freight_analysis"] = {
+                "view": "products+order_items",
+                "sql": "dimension and freight analysis",
+                "data": dimension_data,
+            }
+
             print("[INFO] Scatter Data Loaded")
+
+            print("[INFO] Dimension Freight Data Loaded")
 
         except Exception as e:
 
@@ -319,6 +339,28 @@ def analyze_question_with_trace(question):
 
             print("[HEATMAP ERROR]", e)
 
+    # =====================
+    # Sales / forecast anomaly detection
+    # =====================
+
+    if intent in {"sales", "forecast"}:
+
+        try:
+
+            anomaly_data = query_sales_anomalies()
+
+            queries["sales_anomaly_detection"] = {
+                "view": "mv_monthly_sales",
+                "sql": "monthly sales anomaly detection",
+                "data": anomaly_data,
+            }
+
+            print("[INFO] Sales Anomaly Data Loaded")
+
+        except Exception as e:
+
+            print("[ANOMALY ERROR]", e)
+
     state = {
         "primary": {"data": result, "sql": sql, "view": view_name},
         "queries": queries,
@@ -373,6 +415,117 @@ def query_weight_freight_scatter():
     """
 
     return run_query(sql)
+
+
+def query_dimension_freight_analysis():
+
+    sql = """
+    SELECT
+        COALESCE(t.product_category_name_english, p.product_category_name) AS product_category,
+        ROUND(AVG(p.product_weight_g), 2) AS avg_weight_g,
+        ROUND(AVG(
+            p.product_length_cm *
+            p.product_height_cm *
+            p.product_width_cm
+        ), 2) AS avg_volume_cm3,
+        ROUND(AVG(oi.freight_value), 2) AS avg_freight_value,
+        COUNT(*) AS order_count
+    FROM order_items oi
+    JOIN products p
+        ON oi.product_id = p.product_id
+    LEFT JOIN product_category_name_translation t
+        ON p.product_category_name = t.product_category_name
+    WHERE
+        p.product_weight_g IS NOT NULL
+        AND p.product_length_cm IS NOT NULL
+        AND p.product_height_cm IS NOT NULL
+        AND p.product_width_cm IS NOT NULL
+        AND oi.freight_value IS NOT NULL
+    GROUP BY product_category
+    HAVING order_count >= 30
+    ORDER BY avg_freight_value DESC
+    LIMIT 20
+    """
+
+    return run_query(sql)
+
+
+def query_top_negative_categories():
+
+    sql = """
+    SELECT
+        COALESCE(t.product_category_name_english, p.product_category_name) AS product_category,
+        COUNT(*) AS negative_review_count,
+        ROUND(AVG(r.review_score), 2) AS avg_review_score,
+        GROUP_CONCAT(
+            LEFT(r.review_comment_message, 120)
+            SEPARATOR ' | '
+        ) AS sample_comments
+    FROM order_reviews r
+    JOIN orders o
+        ON r.order_id = o.order_id
+    JOIN order_items oi
+        ON o.order_id = oi.order_id
+    JOIN products p
+        ON oi.product_id = p.product_id
+    LEFT JOIN product_category_name_translation t
+        ON p.product_category_name = t.product_category_name
+    WHERE
+        r.review_score <= 2
+        AND r.review_comment_message IS NOT NULL
+        AND r.review_comment_message <> ''
+        AND p.product_category_name IS NOT NULL
+    GROUP BY product_category
+    ORDER BY negative_review_count DESC
+    LIMIT 10
+    """
+
+    return run_query(sql)
+
+
+def query_sales_anomalies():
+
+    sql = """
+    SELECT
+        ym,
+        total_gmv,
+        total_orders,
+        avg_basket
+    FROM mv_monthly_sales
+    ORDER BY ym
+    """
+
+    df = run_query(sql)
+
+    if df is None or df.empty:
+        return df
+
+    df = df.copy()
+    historical_window = df["total_gmv"].rolling(
+        window=3,
+        min_periods=2,
+    )
+
+    df["rolling_avg_gmv"] = historical_window.mean().shift(1)
+    df["rolling_std_gmv"] = historical_window.std().shift(1)
+    df["anomaly_score"] = 0.0
+
+    valid_std = (
+        df["rolling_std_gmv"].notna()
+        & (df["rolling_std_gmv"] > 0)
+    )
+    df.loc[valid_std, "anomaly_score"] = (
+        (
+            df.loc[valid_std, "total_gmv"]
+            - df.loc[valid_std, "rolling_avg_gmv"]
+        )
+        / df.loc[valid_std, "rolling_std_gmv"]
+    )
+    df["anomaly_type"] = "normal"
+    df.loc[df["anomaly_score"] >= 2.0, "anomaly_type"] = "positive_spike"
+    df.loc[df["anomaly_score"] <= -2.0, "anomaly_type"] = "negative_drop"
+
+    return df
 
 
 def query_review_texts():

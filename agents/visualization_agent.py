@@ -19,6 +19,16 @@ CHART_COLOR_SEQUENCE = [
     "#4f46e5",
 ]
 
+
+def _is_blank_or_black_color(color):
+    return (
+        color is None
+        or (
+            isinstance(color, str)
+            and color.lower() in {"#000", "#000000", "black", "rgb(0,0,0)"}
+        )
+    )
+
 BRAZIL_STATE_COORDS = {
 
     "SP": (-23.55, -46.63),
@@ -75,13 +85,13 @@ def _apply_export_theme(fig):
             marker = getattr(trace, "marker", None)
             if marker is not None:
                 marker_color = getattr(marker, "color", None)
-                if marker_color in {None, "#000", "#000000", "black"}:
+                if _is_blank_or_black_color(marker_color):
                     trace.marker.color = fallback_color
 
             line = getattr(trace, "line", None)
             if line is not None:
                 line_color = getattr(line, "color", None)
-                if line_color in {None, "#000", "#000000", "black"}:
+                if _is_blank_or_black_color(line_color):
                     trace.line.color = fallback_color
 
     return fig
@@ -133,6 +143,121 @@ def _build_chart_payload(chart_name, fig, payload=None):
 def create_chart(df):
 
     columns = df.columns
+
+    if (
+        "product_category" in columns
+        and "negative_review_count" in columns
+        and "avg_review_score" in columns
+    ):
+
+        fig = px.bar(
+            df.sort_values("negative_review_count", ascending=True),
+            x="negative_review_count",
+            y="product_category",
+            orientation="h",
+            color="avg_review_score",
+            title="Top 10 Negative Review Categories",
+            color_continuous_scale=[
+                "#fee2e2",
+                "#fb923c",
+                "#dc2626",
+            ],
+            hover_data=[
+                "avg_review_score",
+                "sample_comments",
+            ],
+        )
+
+        fig.update_layout(
+            xaxis_title="Negative Review Count",
+            yaxis_title="Product Category",
+        )
+
+        return fig
+
+    if (
+        "product_category" in columns
+        and "avg_volume_cm3" in columns
+        and "avg_freight_value" in columns
+        and "order_count" in columns
+    ):
+
+        fig = px.scatter(
+            df,
+            x="avg_volume_cm3",
+            y="avg_freight_value",
+            size="order_count",
+            color="product_category",
+            title="Product Size vs Freight Cost by Category",
+            color_discrete_sequence=CHART_COLOR_SEQUENCE,
+            hover_data=[
+                "avg_weight_g",
+                "order_count",
+            ],
+        )
+
+        fig.update_layout(
+            xaxis_title="Average Volume (cm3)",
+            yaxis_title="Average Freight Cost",
+        )
+
+        return fig
+
+    if (
+        "ym" in columns
+        and "total_gmv" in columns
+        and "anomaly_score" in columns
+        and "anomaly_type" in columns
+    ):
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=df["ym"],
+                y=df["total_gmv"],
+                mode="lines+markers",
+                name="Monthly GMV",
+                line=dict(color="#2563eb", width=3),
+            )
+        )
+
+        anomalies = df[df["anomaly_type"] != "normal"]
+
+        if not anomalies.empty:
+
+            fig.add_trace(
+                go.Scatter(
+                    x=anomalies["ym"],
+                    y=anomalies["total_gmv"],
+                    mode="markers",
+                    name="Detected Anomaly",
+                    marker=dict(
+                        color="#dc2626",
+                        size=14,
+                        symbol="diamond",
+                    ),
+                    customdata=anomalies[[
+                        "anomaly_type",
+                        "anomaly_score",
+                    ]],
+                    hovertemplate=(
+                        "Month=%{x}<br>"
+                        "GMV=%{y:,.0f}<br>"
+                        "Type=%{customdata[0]}<br>"
+                        "Score=%{customdata[1]:.2f}"
+                        "<extra></extra>"
+                    ),
+                )
+            )
+
+        fig.update_layout(
+            title="Monthly GMV Anomaly Detection",
+            xaxis_title="Month",
+            yaxis_title="GMV",
+        )
+
+        return fig
 
     # 商品重量 vs 运费散点图
     if (

@@ -4,6 +4,7 @@ from agents.llm_agent import generate_business_advice
 def generate_advice(state):
 
     df = state.get("primary", {}).get("data")
+    queries = state.get("queries", {})
     review_insights = state.get("review_insights", {})
     forecast = state.get("forecast")
 
@@ -91,14 +92,15 @@ def generate_advice(state):
     if "on_time_rate" in df.columns:
 
         avg_rate = df["on_time_rate"].mean()
+        display_rate = avg_rate / 100 if avg_rate > 1 else avg_rate
 
-        highlights.append(f"当前平均准时率为 {avg_rate:.2%}。")
+        highlights.append(f"当前平均准时率为 {display_rate:.2%}。")
 
-        if avg_rate < 0.80:
+        if display_rate < 0.80:
 
             recommendations.append("准时率偏低，建议重点优化物流履约流程。")
 
-        elif avg_rate < 0.90:
+        elif display_rate < 0.90:
 
             recommendations.append("准时率处于正常水平，建议持续监控重点区域物流表现。")
 
@@ -149,6 +151,67 @@ def generate_advice(state):
     if review_insights and review_insights.get("summary"):
 
         highlights.append(review_insights["summary"])
+
+    negative_categories = review_insights.get("negative_categories", [])
+
+    if negative_categories:
+
+        worst_category = negative_categories[0]
+
+        highlights.append(
+            "Top negative category: "
+            f"{worst_category['product_category']} "
+            f"with {worst_category['negative_review_count']} negative reviews."
+        )
+
+        recommendations.append(
+            "Prioritize category-level root-cause review for the top negative-review categories, "
+            "especially logistics delay, damaged items, and after-sales handling keywords."
+        )
+
+    anomaly_payload = queries.get("sales_anomaly_detection", {})
+    anomaly_df = anomaly_payload.get("data")
+
+    if anomaly_df is not None and not anomaly_df.empty:
+
+        anomalies = anomaly_df[anomaly_df["anomaly_type"] != "normal"]
+
+        if not anomalies.empty:
+
+            latest_anomaly = anomalies.iloc[-1]
+
+            highlights.append(
+                "Detected monthly GMV anomaly: "
+                f"{latest_anomaly['ym']} "
+                f"{latest_anomaly['anomaly_type']} "
+                f"(score {latest_anomaly['anomaly_score']:.2f})."
+            )
+
+            recommendations.append(
+                "Review campaign calendar, stock availability, delivery capacity, and data quality "
+                "for detected GMV anomaly months."
+            )
+
+    dimension_payload = queries.get("dimension_freight_analysis", {})
+    dimension_df = dimension_payload.get("data")
+
+    if dimension_df is not None and not dimension_df.empty:
+
+        high_freight_category = dimension_df.sort_values(
+            by="avg_freight_value",
+            ascending=False,
+        ).iloc[0]
+
+        highlights.append(
+            "Highest average freight category: "
+            f"{high_freight_category['product_category']} "
+            f"({high_freight_category['avg_freight_value']:.2f})."
+        )
+
+        recommendations.append(
+            "Use product weight and volume to review freight pricing rules, packaging, "
+            "and carrier strategy for high-freight categories."
+        )
 
     # =====================
     # Prophet预测分析

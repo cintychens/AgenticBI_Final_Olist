@@ -16,6 +16,9 @@ STOPWORDS = {
     "recomendo","antes","chegou","entregue",
     "produto","pedido","entrega","email",
     "hoje","volta","somente","essa",
+    "comprei", "comprado", "tinha",
+    "pedi", "saia", "cliente",
+    "empresa", "loja", "site",
     "essa","devolução",
 }
 
@@ -47,12 +50,102 @@ def sentiment_score(text):
         return 0
 
 
+def _build_negative_category_reasons(category_df):
+
+    if category_df is None or category_df.empty:
+
+        return []
+
+    negative_categories = []
+
+    for _, row in category_df.iterrows():
+
+        comments = row.get("sample_comments", "")
+        keywords = [
+            word
+            for word, _
+            in Counter(
+                _tokenize(comments)
+            ).most_common(5)
+        ]
+
+        reason_summary = _infer_negative_reason(comments, keywords)
+
+        negative_categories.append(
+            {
+                "product_category": row.get("product_category"),
+                "negative_review_count": int(row.get("negative_review_count", 0)),
+                "avg_review_score": float(row.get("avg_review_score", 0)),
+                "reason_keywords": keywords,
+                "reason_summary": reason_summary,
+            }
+        )
+
+    return negative_categories
+
+
+def _infer_negative_reason(comments, keywords):
+
+    text = str(comments).lower()
+    reason_rules = [
+        (
+            "Logistics delay / not delivered",
+            [
+                "atras", "demora", "prazo", "entrega",
+                "entregue", "chegou", "recebi", "transportadora",
+            ],
+        ),
+        (
+            "Damaged or poor product quality",
+            [
+                "defeito", "quebrado", "danificado", "avariado",
+                "qualidade", "peca", "faltando", "funciona",
+            ],
+        ),
+        (
+            "Wrong or different item",
+            [
+                "errado", "diferente", "troca", "modelo",
+                "cor", "tamanho", "outro",
+            ],
+        ),
+        (
+            "Refund / return / after-sales issue",
+            [
+                "reembolso", "devolu", "estorno", "cancel",
+                "atendimento", "contato", "resposta",
+            ],
+        ),
+    ]
+
+    matched_reasons = [
+        label
+        for label, terms in reason_rules
+        if any(term in text for term in terms)
+    ]
+
+    if matched_reasons:
+
+        return "; ".join(matched_reasons[:2])
+
+    if keywords:
+
+        return "Keyword cluster: " + " | ".join(keywords[:5])
+
+    return "No clear keyword"
+
+
 def extract_review_insights(agent_state):
 
     review_payload = (
         agent_state
         .get("queries", {})
         .get("base_review_insight")
+    )
+    category_payload = (
+        agent_state
+        .get("queries", {})
+        .get("top_negative_categories")
     )
 
     if not review_payload:
@@ -153,8 +246,35 @@ Negative : {negative_ratio}%
 并持续提升客户服务体验。
 """
 
+    category_df = None
+
+    if category_payload:
+
+        category_df = category_payload.get("data")
+
+    negative_categories = _build_negative_category_reasons(category_df)
+
+    if negative_categories:
+
+        category_reason_lines = []
+
+        for item in negative_categories[:10]:
+
+            category_reason_lines.append(
+                "- "
+                f"{item['product_category']}: "
+                f"{item['negative_review_count']} negative reviews, "
+                f"avg score {item['avg_review_score']:.2f}, "
+                f"reason keywords: {item['reason_summary']}"
+            )
+
+        summary += (
+            "\n\nTop 10 negative-review categories and reason keywords:\n"
+            + "\n".join(category_reason_lines)
+        )
+
     return {
-        "negative_categories": [],
+        "negative_categories": negative_categories,
         "keywords": keywords,
         "summary": summary,
         "comments": comments,

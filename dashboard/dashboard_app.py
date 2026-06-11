@@ -1,7 +1,10 @@
+import html
+
 import pandas as pd
 import streamlit as st
 
 from agents.coordinator_agent import run_agent
+from agents.memory_agent import remember_turn
 from utils.performance_test import benchmark_monthly_sales
 from datetime import datetime
 
@@ -218,6 +221,120 @@ def _inject_style():
             padding: 0.5rem;
         }
 
+        .chat-panel {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-radius: 16px;
+            padding: 1rem;
+            margin: 1rem 0;
+            min-height: 520px;
+            max-height: 72vh;
+            overflow-y: auto;
+        }
+
+        .chat-turn {
+            margin: 0.75rem 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-user,
+        .chat-agent {
+            max-width: 86%;
+            border-radius: 14px;
+            padding: 0.75rem 0.9rem;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .chat-user {
+            align-self: flex-end;
+            margin-left: auto;
+            background: #1e3a5f;
+            color: #ffffff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .chat-agent {
+            align-self: flex-start;
+            margin-right: auto;
+            background: #f8fafc;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .chat-meta {
+            font-size: 0.72rem;
+            color: #64748b;
+            margin-bottom: 0.35rem;
+            font-weight: 600;
+        }
+
+        .chat-preview {
+            margin-top: 0.5rem;
+            font-size: 0.78rem;
+            color: #475569;
+        }
+
+        .chat-empty {
+            color: #64748b;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+        }
+
+        .bubble-row {
+            display: flex;
+            width: 100%;
+            margin: 0.6rem 0;
+        }
+
+        .bubble-row.user-row {
+            justify-content: flex-end;
+        }
+
+        .bubble-row.agent-row {
+            justify-content: flex-start;
+        }
+
+        .bubble {
+            max-width: 86%;
+            border-radius: 14px;
+            padding: 0.7rem 0.85rem;
+            font-size: 0.9rem;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .user-bubble {
+            background: #1e3a5f;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .agent-bubble {
+            background: white;
+            color: #1e293b;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 4px;
+        }
+
+        .quick-question-title {
+            color: #475569;
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin: 0.6rem 0 0.35rem;
+        }
+
+        [data-testid="stVerticalBlock"] [data-testid="stChatMessage"] {
+            margin-bottom: 0.65rem;
+        }
+
         /* 优化滚动条 */
         ::-webkit-scrollbar {
             width: 6px;
@@ -358,16 +475,6 @@ def _render_sidebar():
             f"<span class='agent-pill'>{agent}</span>", unsafe_allow_html=True
         )
 
-    st.sidebar.markdown("---")
-
-    st.sidebar.markdown("#### 示例问题")
-
-    for question in EXAMPLE_QUESTIONS:
-        if st.sidebar.button(
-            question, key=f"example_{question}", use_container_width=True
-        ):
-            st.session_state["selected_question"] = question
-
     # =====================
     # Conversation Memory
     # =====================
@@ -465,11 +572,55 @@ def _render_input_area():
                     "view": view_name,
                     "timestamp": datetime.now().strftime("%H:%M:%S"),
                     "result_preview": preview,
+                    "advice_preview": response.get("advice", [])[:3],
                 }
             )
 
             # 最多保留最近10轮
             st.session_state["chat_history"] = st.session_state["chat_history"][-10:]
+
+
+def _render_conversation_area():
+    history = st.session_state.get("chat_history", [])
+
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    if not history:
+        st.info("当前会话还没有问题。你可以先输入一个业务问题，然后继续追问上一轮结果。")
+        return
+
+    for item in history[-6:]:
+        question = html.escape(str(item.get("question", "")))
+        intent = html.escape(str(item.get("intent", "unknown")))
+        view_name = html.escape(str(item.get("view", "")))
+        timestamp = html.escape(str(item.get("timestamp", "")))
+        preview = html.escape(str(item.get("result_preview", "")))
+        advice_preview = item.get("advice_preview", [])
+
+        if isinstance(advice_preview, list) and advice_preview:
+            advice_text = html.escape(" | ".join(str(text) for text in advice_preview[:2]))
+        else:
+            advice_text = "Analysis completed. See charts and recommendations on the right."
+
+        st.markdown(
+            f"""
+            <div class="chat-turn">
+                <div class="chat-user">
+                    <div class="chat-meta" style="color: rgba(255,255,255,0.75);">You · {timestamp}</div>
+                    {question}
+                </div>
+            </div>
+            <div class="chat-turn">
+                <div class="chat-agent">
+                    <div class="chat-meta">Agent · intent: {intent} · view: {view_name}</div>
+                    {advice_text}
+                    <div class="chat-preview">Result preview: {preview}</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
 
 
 def _render_kpis(result):
@@ -507,6 +658,9 @@ def _render_charts(charts):
         "negative_wordcloud": "Negative Reviews WordCloud",
         "payment_installment_heatmap": "Payment × Installment Heatmap",
         "weight_freight_scatter": "Weight vs Freight Cost Analysis",
+        "dimension_freight_analysis": "Product Size vs Freight Cost Analysis",
+        "top_negative_categories": "Top 10 Negative Review Categories",
+        "sales_anomaly_detection": "Monthly GMV Anomaly Detection",
         "state_geo_map": "Brazil Sales Distribution Map",
         "main_query": "Business Analysis",
     }
@@ -614,6 +768,148 @@ def _render_performance_benchmark():
             st.code(result["view_sql"], language="sql")
 
 
+def _render_conversation_area():
+    history = st.session_state.get("chat_history", [])
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    if not history:
+        st.markdown(
+            """
+            <div class="chat-panel">
+                <div class="chat-empty">
+                    当前会话还没有问题。先输入一个业务问题，之后可以像聊天一样继续追问上一轮结果。
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        return
+
+    turns = []
+
+    for item in history[-8:]:
+        question = html.escape(str(item.get("question", "")))
+        intent = html.escape(str(item.get("intent", "unknown")))
+        view_name = html.escape(str(item.get("view", "")))
+        timestamp = html.escape(str(item.get("timestamp", "")))
+        preview = html.escape(str(item.get("result_preview", "")))
+        advice_preview = item.get("advice_preview", [])
+
+        if isinstance(advice_preview, list) and advice_preview:
+            advice_text = html.escape(" | ".join(str(text) for text in advice_preview[:2]))
+        else:
+            advice_text = "Analysis completed. See charts and recommendations on the right."
+
+        turns.append(
+            (
+                '<div class="chat-turn">'
+                '<div class="chat-user">'
+                f'<div class="chat-meta" style="color: rgba(255,255,255,0.75);">You · {timestamp}</div>'
+                f"{question}"
+                "</div>"
+                "</div>"
+                '<div class="chat-turn">'
+                '<div class="chat-agent">'
+                f'<div class="chat-meta">Agent · intent: {intent} · view: {view_name}</div>'
+                f"{advice_text}"
+                f'<div class="chat-preview">Result preview: {preview}</div>'
+                "</div>"
+                "</div>"
+            )
+        )
+
+    st.markdown(
+        f"<div class='chat-panel'>{''.join(turns)}</div>",
+        unsafe_allow_html=True,
+    )
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    if history:
+        turns = []
+
+        for item in history[-8:]:
+            question = html.escape(str(item.get("question", "")))
+            intent = html.escape(str(item.get("intent", "unknown")))
+            view_name = html.escape(str(item.get("view", "")))
+            timestamp = html.escape(str(item.get("timestamp", "")))
+            preview = html.escape(str(item.get("result_preview", "")))
+            advice_preview = item.get("advice_preview", [])
+
+            if isinstance(advice_preview, list) and advice_preview:
+                advice_text = html.escape(
+                    " | ".join(str(text) for text in advice_preview[:2])
+                )
+            else:
+                advice_text = (
+                    "Analysis completed. See charts and recommendations on the right."
+                )
+
+            turns.append(
+                f"""
+                <div class="chat-turn">
+                    <div class="chat-user">
+                        <div class="chat-meta" style="color: rgba(255,255,255,0.75);">You · {timestamp}</div>
+                        {question}
+                    </div>
+                </div>
+                <div class="chat-turn">
+                    <div class="chat-agent">
+                        <div class="chat-meta">Agent · intent: {intent} · view: {view_name}</div>
+                        {advice_text}
+                        <div class="chat-preview">Result preview: {preview}</div>
+                    </div>
+                </div>
+                """
+            )
+
+        st.markdown(
+            f"<div class='chat-panel'>{''.join(turns)}</div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            """
+            <div class="chat-panel">
+                <div class="chat-empty">
+                    当前会话还没有问题。先输入一个业务问题，之后可以像聊天一样继续追问上一轮结果。
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    analyze = st.button("发送并分析", type="primary", use_container_width=True)
+
+    if analyze:
+        if not question.strip():
+            st.warning("请输入业务问题后再发送。")
+            return
+
+        with st.spinner("Coordinator Agent 正在分析问题..."):
+            response = run_agent(question, st.session_state["chat_history"])
+            st.session_state["response"] = response
+            st.session_state["chat_history"] = remember_turn(
+                st.session_state["chat_history"],
+                question,
+                response,
+            )
+
+
 def run_dashboard():
     st.set_page_config(
         page_title="Agentic BI Dashboard",
@@ -629,6 +925,8 @@ def run_dashboard():
 
     # 先处理用户输入
     _render_input_area()
+
+    _render_conversation_area()
 
     # 再渲染侧边栏
     _render_sidebar()
@@ -660,6 +958,325 @@ def run_dashboard():
 
             if response:
                 _render_what_if(response.get("what_if"))
+
+
+def run_dashboard():
+    st.set_page_config(
+        page_title="Agentic BI Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+
+    _init_session()
+    _inject_style()
+    _render_header()
+    _render_sidebar()
+
+    chat_col, result_col = st.columns([0.9, 2.1], gap="large")
+
+    with chat_col:
+        _render_chat_panel()
+
+    response = st.session_state.get("response")
+    result, chart, advice = _normalize_response(response)
+    charts = response.get("charts", []) if response else []
+
+    with result_col:
+        result_left, result_right = st.columns([2, 1])
+
+        with result_left:
+            _render_kpis(result)
+            _render_charts(charts)
+
+        with result_right:
+            _render_performance_benchmark()
+
+            if response:
+                _render_nlp_insights(response.get("review_insights", {}))
+                _render_what_if(response.get("what_if"))
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    if history:
+        for item in history[-8:]:
+            with st.chat_message("user"):
+                st.write(item.get("question", ""))
+
+            advice_preview = item.get("advice_preview", [])
+            if isinstance(advice_preview, list) and advice_preview:
+                answer = "\n\n".join(str(text) for text in advice_preview[:2])
+            else:
+                answer = "分析已完成，右侧展示了对应的指标、图表和决策建议。"
+
+            with st.chat_message("assistant"):
+                st.write(answer)
+    else:
+        st.info("当前会话还没有问题。先输入一个业务问题，之后可以像聊天一样继续追问上一轮结果。")
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    analyze = st.button("发送并分析", type="primary", use_container_width=True)
+
+    if analyze:
+        if not question.strip():
+            st.warning("请输入业务问题后再发送。")
+            return
+
+        with st.spinner("Coordinator Agent 正在分析问题..."):
+            response = run_agent(question, st.session_state["chat_history"])
+            st.session_state["response"] = response
+            st.session_state["chat_history"] = remember_turn(
+                st.session_state["chat_history"],
+                question,
+                response,
+            )
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    with st.container(height=620):
+        if history:
+            for item in history[-8:]:
+                with st.chat_message("user"):
+                    st.write(item.get("question", ""))
+
+                advice_preview = item.get("advice_preview", [])
+                if isinstance(advice_preview, list) and advice_preview:
+                    answer = "\n\n".join(str(text) for text in advice_preview[:2])
+                else:
+                    answer = "分析已完成，右侧展示了对应的指标、图表和决策建议。"
+
+                with st.chat_message("assistant"):
+                    st.write(answer)
+        else:
+            st.info("当前会话还没有问题。先选择一个快捷问题，或在下方输入业务问题。")
+
+        st.markdown(
+            "<div class='quick-question-title'>快捷问题</div>",
+            unsafe_allow_html=True,
+        )
+
+        for row_start in range(0, len(EXAMPLE_QUESTIONS), 2):
+            cols = st.columns(2)
+            for offset, question_item in enumerate(
+                EXAMPLE_QUESTIONS[row_start: row_start + 2]
+            ):
+                with cols[offset]:
+                    if st.button(
+                        question_item,
+                        key=f"chat_example_{row_start}_{offset}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["selected_question"] = question_item
+                        st.session_state["chat_question_input"] = question_item
+                        st.rerun()
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    analyze = st.button("发送并分析", type="primary", use_container_width=True)
+
+    if analyze:
+        if not question.strip():
+            st.warning("请输入业务问题后再发送。")
+            return
+
+        with st.spinner("Coordinator Agent 正在分析问题..."):
+            response = run_agent(question, st.session_state["chat_history"])
+            st.session_state["response"] = response
+            st.session_state["chat_history"] = remember_turn(
+                st.session_state["chat_history"],
+                question,
+                response,
+            )
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    with st.container(height=620):
+        if history:
+            bubble_html = []
+
+            for item in history[-8:]:
+                user_text = html.escape(str(item.get("question", ""))).replace("\n", "<br>")
+                advice_preview = item.get("advice_preview", [])
+
+                if isinstance(advice_preview, list) and advice_preview:
+                    agent_text = "<br><br>".join(
+                        html.escape(str(text)) for text in advice_preview[:2]
+                    )
+                else:
+                    agent_text = "分析已完成，右侧展示了对应的指标、图表和决策建议。"
+
+                bubble_html.append(
+                    '<div class="bubble-row user-row">'
+                    f'<div class="bubble user-bubble">{user_text}</div>'
+                    '</div>'
+                    '<div class="bubble-row agent-row">'
+                    f'<div class="bubble agent-bubble">{agent_text}</div>'
+                    '</div>'
+                )
+
+            st.markdown("".join(bubble_html), unsafe_allow_html=True)
+        else:
+            st.info("当前会话还没有问题。先选择一个快捷问题，或在下方输入业务问题。")
+
+        st.markdown(
+            "<div class='quick-question-title'>快捷问题</div>",
+            unsafe_allow_html=True,
+        )
+
+        for row_start in range(0, len(EXAMPLE_QUESTIONS), 2):
+            cols = st.columns(2)
+            for offset, question_item in enumerate(
+                EXAMPLE_QUESTIONS[row_start: row_start + 2]
+            ):
+                with cols[offset]:
+                    if st.button(
+                        question_item,
+                        key=f"chat_example_{row_start}_{offset}",
+                        use_container_width=True,
+                    ):
+                        st.session_state["selected_question"] = question_item
+                        st.session_state["chat_question_input"] = question_item
+                        st.rerun()
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    analyze = st.button("发送并分析", type="primary", use_container_width=True)
+
+    if analyze:
+        if not question.strip():
+            st.warning("请输入业务问题后再发送。")
+            return
+
+        with st.spinner("Coordinator Agent 正在分析问题..."):
+            response = run_agent(question, st.session_state["chat_history"])
+            st.session_state["response"] = response
+            st.session_state["chat_history"] = remember_turn(
+                st.session_state["chat_history"],
+                question,
+                response,
+            )
+
+
+def _submit_chat_question(question):
+    question = str(question or "").strip()
+
+    if not question:
+        st.warning("请输入业务问题后再发送。")
+        return
+
+    with st.spinner("Coordinator Agent 正在分析问题..."):
+        response = run_agent(question, st.session_state["chat_history"])
+        st.session_state["response"] = response
+        st.session_state["chat_history"] = remember_turn(
+            st.session_state["chat_history"],
+            question,
+            response,
+        )
+        st.session_state["selected_question"] = ""
+
+    st.rerun()
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    with st.container(height=620):
+        if history:
+            bubble_html = []
+
+            for item in history[-10:]:
+                user_text = html.escape(str(item.get("question", ""))).replace("\n", "<br>")
+                advice_preview = item.get("advice_preview", [])
+
+                if isinstance(advice_preview, list) and advice_preview:
+                    agent_text = "<br><br>".join(
+                        html.escape(str(text)) for text in advice_preview[:2]
+                    )
+                else:
+                    agent_text = "分析已完成，右侧展示了对应的指标、图表和决策建议。"
+
+                bubble_html.append(
+                    '<div class="bubble-row user-row">'
+                    f'<div class="bubble user-bubble">{user_text}</div>'
+                    '</div>'
+                    '<div class="bubble-row agent-row">'
+                    f'<div class="bubble agent-bubble">{agent_text}</div>'
+                    '</div>'
+                )
+
+            st.markdown("".join(bubble_html), unsafe_allow_html=True)
+        else:
+            st.info("当前会话还没有问题。先选择一个快捷问题，或在下方输入业务问题。")
+
+        st.markdown(
+            "<div class='quick-question-title'>快捷问题</div>",
+            unsafe_allow_html=True,
+        )
+
+        for row_start in range(0, len(EXAMPLE_QUESTIONS), 2):
+            cols = st.columns(2)
+            for offset, question_item in enumerate(
+                EXAMPLE_QUESTIONS[row_start: row_start + 2]
+            ):
+                with cols[offset]:
+                    if st.button(
+                        question_item,
+                        key=f"chat_example_submit_{row_start}_{offset}",
+                        use_container_width=True,
+                    ):
+                        _submit_chat_question(question_item)
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    if st.button("发送并分析", type="primary", use_container_width=True):
+        _submit_chat_question(question)
 
 
 if __name__ == "__main__":
