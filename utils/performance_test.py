@@ -1,9 +1,32 @@
 import time
 
-from utils.db import run_query
+from utils.db import execute_sql, run_query
+
+
+def ensure_monthly_sales_cache():
+    sql = """
+    CREATE TABLE IF NOT EXISTS agg_monthly_sales AS
+    SELECT
+        DATE_FORMAT(
+            o.order_purchase_timestamp,
+            '%Y-%m'
+        ) AS ym,
+        COUNT(DISTINCT o.order_id) AS total_orders,
+        SUM(oi.price) AS total_gmv,
+        AVG(oi.price) AS avg_basket
+    FROM orders o
+    JOIN order_items oi
+        ON o.order_id = oi.order_id
+    WHERE o.order_purchase_timestamp IS NOT NULL
+    GROUP BY ym
+    ORDER BY ym
+    """
+
+    execute_sql(sql)
 
 
 def benchmark_monthly_sales():
+    ensure_monthly_sales_cache()
 
     # =====================
     # 原始表 JOIN 查询

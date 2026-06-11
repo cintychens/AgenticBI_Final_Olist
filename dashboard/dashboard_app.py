@@ -12,7 +12,7 @@ EXAMPLE_QUESTIONS = [
     "平台配送准时率怎么样？",
     "哪种支付方式最受欢迎？",
     "哪些卖家评分最低？",
-    "预测未来6个月销售趋势",
+    "预测未来6周销售趋势",
     "分析用户评论情感",
 ]
 
@@ -561,10 +561,10 @@ def _render_what_if(what_if):
 
     **{what_if['current_score']}**
 
-    如果移除评分最低的：
+    如果移除 Top 20 高差评卖家：
 
     **{what_if['removed_sellers']} 个卖家**
-    （评分阈值 ≤ {what_if['threshold']}）
+    （本次 Top 20 最高评分阈值 ≤ {what_if['threshold']}）
 
     优化后评分：
 
@@ -578,7 +578,7 @@ def _render_what_if(what_if):
 
 def _render_performance_benchmark():
     st.markdown(
-        "<div class='section-title'>Aggregate Table Performance Benchmark</div>",
+        "<div class='section-title'>Pre-Aggregated Query Performance Benchmark</div>",
         unsafe_allow_html=True,
     )
 
@@ -592,7 +592,7 @@ def _render_performance_benchmark():
             st.metric("Raw JOIN Query", f"{result['raw_time']:.4f}s")
 
         with col2:
-            st.metric("Pre-Aggregated Table Query", f"{result['view_time']:.4f}s")
+            st.metric("Pre-Aggregated Query", f"{result['view_time']:.4f}s")
 
         with col3:
             st.metric("Speedup", f"{result['speedup']:.2f}x")

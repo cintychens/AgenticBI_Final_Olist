@@ -155,7 +155,7 @@ def generate_advice(state):
     # =====================
     if forecast is not None:
 
-        highlights.append("系统已生成未来6个月销售预测结果。")
+        highlights.append("系统已生成未来6周销售预测结果。")
 
         try:
 

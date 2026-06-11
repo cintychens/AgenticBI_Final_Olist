@@ -11,3 +11,4 @@ scikit-learn
 prophet
 textblob
 nltk
+kaleido
