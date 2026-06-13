@@ -4,6 +4,36 @@ from config.settings import VECTOR_API_KEY, VECTOR_BASE_URL, MODEL_NAME
 
 client = OpenAI(api_key=VECTOR_API_KEY, base_url=VECTOR_BASE_URL)
 
+
+def _rule_based_intent(question: str):
+    text = str(question).lower()
+
+    if any(word in text for word in ["预测", "未来", "forecast", "6周", "6 周"]):
+        return "forecast"
+
+    if any(word in text for word in ["评论", "评价", "差评品类", "差评原因", "情感", "词云", "review"]):
+        return "review"
+
+    if any(word in text for word in ["支付", "分期", "payment", "installment", "信用卡"]):
+        return "payment"
+
+    if any(word in text for word in ["准时", "交付", "配送", "延迟", "物流", "运费", "重量", "尺寸", "delivery", "freight"]):
+        return "delivery"
+
+    if any(word in text for word in ["卖家", "seller", "差评率"]):
+        return "seller"
+
+    if any(word in text for word in ["州", "地区", "东北部", "区域", "state"]):
+        return "state"
+
+    if any(word in text for word in ["品类", "产品", "category"]):
+        return "category"
+
+    if any(word in text for word in ["gmv", "销售", "销售额", "月度", "趋势", "订单"]):
+        return "sales"
+
+    return None
+
 INTENT_PROMPT = """
 你是Agentic BI系统中的意图识别Agent。
 
@@ -93,6 +123,11 @@ def classify_question(question: str) -> str:
     使用大模型识别业务意图
     """
 
+    rule_intent = _rule_based_intent(question)
+
+    if rule_intent:
+        return rule_intent
+
     try:
 
         response = client.chat.completions.create(
@@ -139,6 +174,12 @@ def generate_business_advice(summary):
 请根据以下业务分析结果进行综合推理：
 
 {summary}
+
+重要约束：
+1. 数据库查询返回的原始取值必须保持原样，不要翻译、改写或本地化。
+2. 例如 credit_card、boleto、SP、seller_id、product_category、评论关键词和评论原文等具体取值，必须按数据里的原始写法输出。
+3. 面向业务用户解释字段或指标时，请使用中文名称，例如 total_gmv 写成“总GMV”，total_orders 写成“订单量”，avg_review_score 写成“平均评分”。
+4. 只有你自己生成的解释、结论、原因归纳和运营建议必须使用中文。
 
 请输出以下内容：
 

@@ -89,28 +89,28 @@ def _infer_negative_reason(comments, keywords):
     text = str(comments).lower()
     reason_rules = [
         (
-            "Logistics delay / not delivered",
+            "物流延迟或未送达",
             [
                 "atras", "demora", "prazo", "entrega",
                 "entregue", "chegou", "recebi", "transportadora",
             ],
         ),
         (
-            "Damaged or poor product quality",
+            "商品破损或质量问题",
             [
                 "defeito", "quebrado", "danificado", "avariado",
                 "qualidade", "peca", "faltando", "funciona",
             ],
         ),
         (
-            "Wrong or different item",
+            "发错货或商品不一致",
             [
                 "errado", "diferente", "troca", "modelo",
                 "cor", "tamanho", "outro",
             ],
         ),
         (
-            "Refund / return / after-sales issue",
+            "退款、退货或售后处理问题",
             [
                 "reembolso", "devolu", "estorno", "cancel",
                 "atendimento", "contato", "resposta",
@@ -130,9 +130,9 @@ def _infer_negative_reason(comments, keywords):
 
     if keywords:
 
-        return "Keyword cluster: " + " | ".join(keywords[:5])
+        return "关键词聚类：" + " | ".join(keywords[:5])
 
-    return "No clear keyword"
+    return "暂无明确关键词"
 
 
 def extract_review_insights(agent_state):
@@ -265,11 +265,11 @@ Negative : {negative_ratio}%
                 f"{item['product_category']}: "
                 f"{item['negative_review_count']} negative reviews, "
                 f"avg score {item['avg_review_score']:.2f}, "
-                f"reason keywords: {item['reason_summary']}"
+                f"主要原因：{item['reason_summary']}"
             )
 
         summary += (
-            "\n\nTop 10 negative-review categories and reason keywords:\n"
+            "\n\nTop 10 差评品类及主要原因关键词：\n"
             + "\n".join(category_reason_lines)
         )
 

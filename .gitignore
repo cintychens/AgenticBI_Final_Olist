@@ -1,5 +1,6 @@
 config/settings.py
 data/*.csv
+outputs/
 __pycache__/
 *.py[cod]
 *$py.class

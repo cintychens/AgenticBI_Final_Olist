@@ -133,11 +133,14 @@ def save_chart_file(fig, chart_name):
 
 def _build_chart_payload(chart_name, fig, payload=None):
     file_key = _chart_file_key(chart_name, payload)
+    payload = payload or {}
 
     return {
         "name": chart_name,
         "figure": fig,
         "file_path": save_chart_file(fig, file_key),
+        "intent": payload.get("intent"),
+        "view": payload.get("view"),
     }
 
 def create_chart(df):
@@ -260,6 +263,37 @@ def create_chart(df):
         return fig
 
     # 商品重量 vs 运费散点图
+    if (
+        "customer_state" in columns
+        and "risk_rate" in columns
+        and "risk_orders" in columns
+    ):
+
+        fig = px.bar(
+            df,
+            x="customer_state",
+            y="risk_rate",
+            color="risk_orders",
+            title="Northeast Brazil Return / Cancellation Risk",
+            color_continuous_scale=[
+                "#dbeafe",
+                "#60a5fa",
+                "#1e3a8a",
+            ],
+            hover_data=[
+                "total_orders",
+                "risk_orders",
+                "avg_delivery_days",
+            ],
+        )
+
+        fig.update_layout(
+            xaxis_title="Customer State",
+            yaxis_title="Risk Rate",
+        )
+
+        return fig
+
     if (
         "product_weight_g" in columns
         and "freight_value" in columns
@@ -526,9 +560,118 @@ def create_forecast_chart(forecast):
 
     return fig
 
+def create_state_order_drop_anomaly_chart(df):
+
+    anomaly_df = df[df["anomaly_type"] != "normal"].copy()
+
+    if anomaly_df.empty:
+        anomaly_df = df.sort_values(
+            by="order_change_rate",
+            ascending=True,
+        ).head(15)
+
+    fig = px.bar(
+        anomaly_df,
+        x="customer_state",
+        y="order_change_rate",
+        color="ym",
+        title="State Order Drop Anomaly Detection",
+        color_discrete_sequence=CHART_COLOR_SEQUENCE,
+        hover_data=[
+            "ym",
+            "total_orders",
+            "previous_orders",
+            "anomaly_type",
+        ],
+    )
+
+    fig.update_layout(
+        xaxis_title="Customer State",
+        yaxis_title="Order Change Rate",
+    )
+
+    return fig
+
+
+def create_review_rate_spike_anomaly_chart(df):
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=df["ym"],
+            y=df["negative_review_rate"],
+            mode="lines+markers",
+            name="Negative Review Rate",
+            line=dict(color="#2563eb", width=3),
+        )
+    )
+
+    anomalies = df[df["anomaly_type"] != "normal"]
+
+    if not anomalies.empty:
+        fig.add_trace(
+            go.Scatter(
+                x=anomalies["ym"],
+                y=anomalies["negative_review_rate"],
+                mode="markers",
+                name="Detected Spike",
+                marker=dict(
+                    color="#dc2626",
+                    size=14,
+                    symbol="diamond",
+                ),
+                customdata=anomalies[[
+                    "rate_change",
+                    "review_count",
+                    "negative_reviews",
+                ]],
+                hovertemplate=(
+                    "Month=%{x}<br>"
+                    "Negative Rate=%{y:.2%}<br>"
+                    "Rate Change=%{customdata[0]:.2%}<br>"
+                    "Reviews=%{customdata[1]}<br>"
+                    "Negative Reviews=%{customdata[2]}"
+                    "<extra></extra>"
+                ),
+            )
+        )
+
+    fig.update_layout(
+        title="Negative Review Rate Spike Detection",
+        xaxis_title="Month",
+        yaxis_title="Negative Review Rate",
+    )
+
+    return fig
+
+
+def create_state_avg_basket_chart(df):
+    fig = px.bar(
+        df.sort_values("avg_basket", ascending=False),
+        x="customer_state",
+        y="avg_basket",
+        color="customer_state",
+        title="Average Basket by State",
+        color_discrete_sequence=CHART_COLOR_SEQUENCE,
+        hover_data=[
+            "total_gmv",
+            "total_orders",
+        ],
+    )
+
+    fig.update_layout(
+        xaxis_title="Customer State",
+        yaxis_title="Average Basket",
+    )
+
+    return fig
+
+
 def create_charts(queries, forecast=None):
 
     charts = []
+    is_northeast_risk_question = "northeast_return_risk" in queries
 
     # Prophet预测图
     if forecast is not None:
@@ -552,9 +695,41 @@ def create_charts(queries, forecast=None):
 
             continue
 
+        if forecast is not None and query_name in {
+            "main_query",
+            "sales_query",
+            "forecast_query",
+            "sales_anomaly_detection",
+        }:
+
+            payload_view = payload.get("view")
+
+            if payload_view == "mv_monthly_sales" or query_name == "sales_anomaly_detection":
+                continue
+
+        if is_northeast_risk_question:
+
+            if query_name == "main_query" and payload.get("view") == "mv_state_sales":
+                continue
+
+            if query_name in {
+                "positive_wordcloud",
+                "negative_wordcloud",
+                "base_review_insight",
+            }:
+                continue
+
         if query_name == "state_geo_map":
 
             fig = create_state_geo_map(df)
+
+        elif query_name == "state_order_drop_anomaly":
+
+            fig = create_state_order_drop_anomaly_chart(df)
+
+        elif query_name == "review_rate_spike_anomaly":
+
+            fig = create_review_rate_spike_anomaly_chart(df)
 
         # =====================
         # 好评词云
@@ -591,6 +766,22 @@ def create_charts(queries, forecast=None):
             charts.append(
                 _build_chart_payload(query_name, fig, payload)
             )
+
+            if (
+                query_name in {"main_query", "state_query"}
+                and "customer_state" in df.columns
+                and "avg_basket" in df.columns
+                and "total_gmv" in df.columns
+                and "total_orders" in df.columns
+            ):
+                avg_basket_fig = create_state_avg_basket_chart(df)
+                charts.append(
+                    _build_chart_payload(
+                        "state_avg_basket",
+                        avg_basket_fig,
+                        payload,
+                    )
+                )
 
     print(
         "Charts Generated:",
@@ -756,18 +947,24 @@ def create_state_geo_map(df):
 
     df = df.copy()
 
-    df["lat"] = df["customer_state"].map(
-        lambda x: BRAZIL_STATE_COORDS.get(
-            x,
-            (None, None)
-        )[0]
+    if "lat" not in df.columns:
+        df["lat"] = None
+
+    if "lon" not in df.columns:
+        df["lon"] = None
+
+    df["lat"] = df.apply(
+        lambda row: row["lat"]
+        if pd.notna(row["lat"])
+        else BRAZIL_STATE_COORDS.get(row["customer_state"], (None, None))[0],
+        axis=1,
     )
 
-    df["lon"] = df["customer_state"].map(
-        lambda x: BRAZIL_STATE_COORDS.get(
-            x,
-            (None, None)
-        )[1]
+    df["lon"] = df.apply(
+        lambda row: row["lon"]
+        if pd.notna(row["lon"])
+        else BRAZIL_STATE_COORDS.get(row["customer_state"], (None, None))[1],
+        axis=1,
     )
 
     df = df.dropna(

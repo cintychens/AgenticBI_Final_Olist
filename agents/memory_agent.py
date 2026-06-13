@@ -5,6 +5,28 @@ MAX_MEMORY_TURNS = 10
 CONTEXT_TURNS = 5
 
 
+FOLLOW_UP_MARKERS = [
+    "第二",
+    "第三",
+    "第一",
+    "那个",
+    "这个",
+    "它",
+    "他们",
+    "继续",
+    "刚才",
+    "上一个",
+    "上一轮",
+    "前面",
+    "上述",
+    "对比",
+    "that",
+    "above",
+    "previous",
+    "continue",
+]
+
+
 def summarize_result_preview(response):
     try:
         data = response.get("primary", {}).get("data")
@@ -20,6 +42,14 @@ def remember_turn(memory, question, response):
     intent = response.get("intent", {}).get("label", "unknown")
     view_name = response.get("primary", {}).get("view", "")
     advice = response.get("advice", [])
+    final_answer = response.get("final_answer")
+
+    if final_answer:
+        advice_preview = [final_answer]
+    elif isinstance(advice, list):
+        advice_preview = advice[:3]
+    else:
+        advice_preview = []
 
     memory.append(
         {
@@ -28,7 +58,7 @@ def remember_turn(memory, question, response):
             "view": view_name,
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "result_preview": summarize_result_preview(response),
-            "advice_preview": advice[:3] if isinstance(advice, list) else [],
+            "advice_preview": advice_preview,
         }
     )
 
@@ -61,6 +91,11 @@ def build_memory_context(memory):
 
 
 def build_contextual_question(question, memory):
+    question_text = str(question)
+
+    if not any(marker in question_text.lower() for marker in FOLLOW_UP_MARKERS):
+        return question
+
     memory_context = build_memory_context(memory)
 
     if not memory_context:

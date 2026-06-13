@@ -355,6 +355,352 @@ def _inject_style():
             background: #94a3b8;
         }
 
+        /* Modern BI visual refinement overrides */
+        .stApp {
+            background: #F8FAFC;
+            color: #111827;
+            font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2.5rem;
+        }
+
+        [data-testid="stSidebar"] {
+            background: linear-gradient(180deg, #0F172A 0%, #1E3A8A 100%);
+            border-right: 1px solid rgba(255, 255, 255, 0.10);
+            box-shadow: 12px 0 36px rgba(15, 23, 42, 0.14);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"],
+        [data-testid="stSidebar"] p,
+        [data-testid="stSidebar"] span,
+        [data-testid="stSidebar"] label {
+            color: #E5E7EB;
+        }
+
+        [data-testid="stSidebar"] h1,
+        [data-testid="stSidebar"] h2,
+        [data-testid="stSidebar"] h3,
+        [data-testid="stSidebar"] h4 {
+            color: #FFFFFF;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        [data-testid="stSidebar"] hr {
+            border-color: rgba(255, 255, 255, 0.16);
+        }
+
+        .main-header {
+            background: linear-gradient(135deg, #1E3A8A 0%, #1D4ED8 100%);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            border-radius: 16px;
+            box-shadow: 0 18px 42px rgba(30, 58, 138, 0.24);
+        }
+
+        .main-title {
+            color: #FFFFFF;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        .main-subtitle {
+            color: #DBEAFE;
+            font-size: 0.95rem;
+        }
+
+        .section-card,
+        .chat-panel,
+        .workflow-box,
+        .suggestion-card,
+        .forecast-summary,
+        .stPlotlyChart {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 16px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+        }
+
+        .section-card,
+        .chat-panel,
+        .workflow-box,
+        .suggestion-card,
+        .forecast-summary {
+            padding: 1rem;
+        }
+
+        .section-title {
+            color: #111827;
+            font-size: 1rem;
+            font-weight: 800;
+            margin: 1.15rem 0 0.85rem;
+        }
+
+        .section-title::after {
+            background: #E5E7EB;
+            height: 1px;
+        }
+
+        .kpi-card {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 16px;
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .kpi-card:hover {
+            transform: translateY(-3px);
+            border-color: #BFDBFE;
+            box-shadow: 0 18px 38px rgba(30, 58, 138, 0.12);
+        }
+
+        .kpi-label {
+            color: #6B7280;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .kpi-value {
+            color: #1E3A8A;
+            font-size: 1.65rem;
+            font-weight: 850;
+            letter-spacing: 0;
+        }
+
+        .agent-pill {
+            background: rgba(255, 255, 255, 0.10);
+            color: #EAF2FF;
+            border-left: 4px solid #60A5FA;
+            border-radius: 12px;
+            font-weight: 750;
+            transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .agent-pill:hover {
+            background: rgba(59, 130, 246, 0.26);
+            transform: translateX(2px);
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.18);
+        }
+
+        div.stButton > button {
+            border-radius: 12px;
+            border: 1px solid #E5E7EB;
+            background: #FFFFFF;
+            color: #1E3A8A;
+            font-weight: 750;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.06);
+            transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+        }
+
+        div.stButton > button:hover {
+            background: linear-gradient(135deg, #EFF6FF 0%, #FFFFFF 100%);
+            border-color: #93C5FD;
+            color: #1D4ED8;
+            transform: translateY(-1px);
+            box-shadow: 0 10px 24px rgba(30, 58, 138, 0.12);
+        }
+
+        div.stButton > button:active {
+            transform: scale(0.98);
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        div.stButton > button[kind="primary"] {
+            background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+            color: #FFFFFF;
+            border-color: #1E40AF;
+            box-shadow: 0 10px 24px rgba(30, 58, 138, 0.22);
+        }
+
+        div.stButton > button[kind="primary"]:hover {
+            background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%);
+            color: #FFFFFF;
+            border-color: #60A5FA;
+        }
+
+        .stTextArea textarea {
+            background: #F9FAFB;
+            border: 1px solid #D1D5DB;
+            border-radius: 14px;
+            color: #111827;
+            font-size: 0.95rem;
+            padding: 0.85rem 0.95rem;
+            box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+            transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+        }
+
+        .stTextArea textarea:focus {
+            background: #FFFFFF;
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+        }
+
+        .stPlotlyChart {
+            padding: 0.9rem;
+            margin: 0.9rem 0 1.6rem;
+            overflow: hidden;
+        }
+
+        .chat-panel {
+            padding: 1rem;
+        }
+
+        .bubble {
+            border-radius: 16px;
+            padding: 0.78rem 0.95rem;
+            font-size: 0.95rem;
+            line-height: 1.65;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.07);
+        }
+
+        .user-bubble {
+            background: linear-gradient(135deg, #1E3A8A 0%, #2563EB 100%);
+            color: #FFFFFF;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .agent-bubble {
+            background: #FFFFFF;
+            color: #1E293B;
+            border: 1px solid #E5E7EB;
+        }
+
+        .chat-meta {
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.72rem;
+            font-weight: 750;
+        }
+
+        .agent-bubble .chat-meta {
+            color: #64748B;
+        }
+
+        .chat-preview {
+            color: #64748B;
+            font-size: 0.82rem;
+            margin-top: 0.45rem;
+        }
+
+        .memory-card {
+            background: rgba(255, 255, 255, 0.10);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 14px;
+            color: #E5E7EB;
+        }
+
+        .memory-card strong {
+            color: #FFFFFF;
+        }
+
+        .sidebar-brand {
+            padding: 0.4rem 0 0.9rem;
+        }
+
+        .sidebar-brand-title {
+            color: #FFFFFF;
+            font-size: 1.15rem;
+            font-weight: 850;
+            letter-spacing: 0;
+            margin-bottom: 0.25rem;
+        }
+
+        .sidebar-brand-subtitle {
+            color: #CBD5E1;
+            font-size: 0.78rem;
+            line-height: 1.5;
+        }
+
+        .sidebar-section-label {
+            color: #93A4BC;
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin: 1rem 0 0.55rem;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.45rem;
+        }
+
+        .history-card {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 0.7rem 0.8rem;
+            color: #E5E7EB;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+        }
+
+        .history-card.active {
+            background: rgba(59, 130, 246, 0.28);
+            border-color: rgba(147, 197, 253, 0.55);
+        }
+
+        .history-question {
+            color: #FFFFFF;
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.45;
+            margin-bottom: 0.35rem;
+        }
+
+        .history-meta {
+            color: #CBD5E1;
+            font-size: 0.72rem;
+            line-height: 1.35;
+        }
+
+        .history-empty {
+            color: #CBD5E1;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px dashed rgba(203, 213, 225, 0.34);
+            border-radius: 14px;
+            padding: 0.8rem;
+            font-size: 0.82rem;
+            line-height: 1.5;
+        }
+
+        [data-testid="stSidebar"] div.stButton > button {
+            background: rgba(255, 255, 255, 0.10);
+            color: #F8FAFC;
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 14px;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+        }
+
+        [data-testid="stSidebar"] div.stButton > button:hover {
+            background: rgba(59, 130, 246, 0.35);
+            color: #FFFFFF;
+            border-color: rgba(147, 197, 253, 0.62);
+        }
+
+        [data-testid="stMetric"] {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 14px;
+            padding: 0.85rem 1rem;
+            box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #CBD5E1;
+            border-radius: 999px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3B82F6;
+        }
+
         /* 响应式调整 */
         @media (max-width: 768px) {
             .main-title {
@@ -456,50 +802,61 @@ def _collect_kpis(result):
 
 
 def _render_sidebar():
-    st.sidebar.markdown("### Agentic BI")
-    st.sidebar.markdown("电商运营分析系统")
-    st.sidebar.markdown("---")
-
-    st.sidebar.markdown("#### Agents")
-
-    for agent in [
-        "Coordinator Agent",
-        "Data Analysis Agent",
-        "Visualization Agent",
-        "Decision Agent",
-        "NLP Agent",
-        "Forecast Agent",
-        "What-if Agent",
-    ]:
-        st.sidebar.markdown(
-            f"<span class='agent-pill'>{agent}</span>", unsafe_allow_html=True
-        )
-
-    # =====================
-    # Conversation Memory
-    # =====================
-
     history = st.session_state.get("chat_history", [])
 
+    st.sidebar.markdown(
+        """
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-title">Agentic BI</div>
+            <div class="sidebar-brand-subtitle">电商运营分析系统</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.sidebar.button("＋ 新分析", use_container_width=True)
+
     st.sidebar.markdown("---")
 
-    st.sidebar.markdown("#### Conversation Memory")
+    st.sidebar.markdown(
+        "<div class='sidebar-section-label'>Conversation History</div>",
+        unsafe_allow_html=True,
+    )
 
     if not history:
-        st.sidebar.info("暂无历史记录")
+        st.sidebar.markdown(
+            """
+            <div class="history-empty">
+                暂无历史问题。开始一次分析后，这里会显示最近的对话记录。
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     else:
-        for item in reversed(history[-5:]):
-            st.sidebar.markdown(
-                f"""
-                <div class='workflow-box'>
-                <b>{item['intent']}</b><br>
-                {item['question']}
-                </div>
-                """,
-                unsafe_allow_html=True,
+        latest_question = str(history[-1].get("question", "")) if history else ""
+        history_cards = []
+
+        for item in reversed(history[-10:]):
+            question = html.escape(str(item.get("question", "")))
+            intent = html.escape(str(item.get("intent", "analysis")))
+            timestamp = html.escape(str(item.get("timestamp", "")))
+            active_class = (
+                " history-card active"
+                if str(item.get("question", "")) == latest_question
+                else " history-card"
             )
 
-        st.sidebar.metric("Memory Size", len(history))
+            history_cards.append(
+                f'<div class="{active_class.strip()}">'
+                f'<div class="history-question">{question}</div>'
+                f'<div class="history-meta">{intent} · {timestamp}</div>'
+                "</div>"
+            )
+
+        st.sidebar.markdown(
+            "<div class='history-list'>" + "".join(history_cards) + "</div>",
+            unsafe_allow_html=True,
+        )
 
 
 def _render_header():
@@ -661,17 +1018,90 @@ def _render_charts(charts):
         "dimension_freight_analysis": "Product Size vs Freight Cost Analysis",
         "top_negative_categories": "Top 10 Negative Review Categories",
         "sales_anomaly_detection": "Monthly GMV Anomaly Detection",
+        "state_order_drop_anomaly": "State Order Drop Anomaly Detection",
+        "review_rate_spike_anomaly": "Negative Review Rate Spike Detection",
         "state_geo_map": "Brazil Sales Distribution Map",
+        "state_avg_basket": "Average Basket by State",
         "main_query": "Business Analysis",
+        "sales_query": "Monthly Sales Trend",
+        "state_query": "State Sales Ranking",
+        "delivery_query": "Delivery Performance",
+        "payment_query": "Payment Analysis",
+        "category_query": "Category Sales Analysis",
+        "seller_query": "Low-Rated Seller Analysis",
+        "review_query": "Review Insight Data",
+        "northeast_return_risk": "Northeast Return / Cancellation Risk",
     }
 
-    for chart_item in charts:
+    INTENT_TITLE_MAPPING = {
+        "sales": "Monthly Sales Trend",
+        "state": "State Sales Ranking",
+        "category": "Category Sales Analysis",
+        "delivery": "Delivery Performance",
+        "payment": "Payment Analysis",
+        "seller": "Low-Rated Seller Analysis",
+        "review": "Review Insight Data",
+        "forecast": "Sales Forecast Analysis",
+    }
+
+    CHART_PRIORITY = {
+        "forecast": 0,
+        "main_query": 10,
+        "sales_query": 20,
+        "state_query": 30,
+        "state_avg_basket": 35,
+        "delivery_query": 40,
+        "payment_query": 50,
+        "payment_installment_heatmap": 55,
+        "category_query": 60,
+        "seller_query": 70,
+        "top_negative_categories": 80,
+        "positive_wordcloud": 90,
+        "negative_wordcloud": 91,
+        "weight_freight_scatter": 100,
+        "dimension_freight_analysis": 101,
+        "state_geo_map": 110,
+        "sales_anomaly_detection": 120,
+        "state_order_drop_anomaly": 121,
+        "review_rate_spike_anomaly": 122,
+    }
+
+    def _chart_priority(item):
+        chart_name = item.get("name", "chart")
+        chart_intent = item.get("intent")
+
+        if chart_name == "main_query":
+            return {
+                "forecast": 0,
+                "sales": 20,
+                "state": 30,
+                "delivery": 40,
+                "payment": 50,
+                "category": 60,
+                "seller": 70,
+                "review": 80,
+            }.get(chart_intent, 10)
+
+        return CHART_PRIORITY.get(chart_name, 999)
+
+    sorted_charts = sorted(charts, key=_chart_priority)
+
+    for chart_index, chart_item in enumerate(sorted_charts):
         chart_name = chart_item.get("name", "chart")
         figure = chart_item.get("figure")
-        title = TITLE_MAPPING.get(chart_name, chart_name.replace("_", " ").title())
+        chart_intent = chart_item.get("intent")
+
+        if chart_name == "main_query" and chart_intent in INTENT_TITLE_MAPPING:
+            title = INTENT_TITLE_MAPPING[chart_intent]
+        else:
+            title = TITLE_MAPPING.get(chart_name, chart_name.replace("_", " ").title())
 
         st.markdown(f"### {title}")
-        st.plotly_chart(figure, width="stretch")
+        st.plotly_chart(
+            figure,
+            width="stretch",
+            key=f"chart_{chart_index}_{chart_name}",
+        )
 
 
 def _render_table(result):
@@ -739,6 +1169,23 @@ def _render_performance_benchmark():
     if st.button("运行性能对比测试", use_container_width=True):
         with st.spinner("正在对比原始表 JOIN 查询与预聚合视图查询..."):
             result = benchmark_monthly_sales()
+
+        if result.get("cases"):
+            benchmark_df = pd.DataFrame(
+                [
+                    {
+                        "Analysis Question": case["question"],
+                        "Raw JOIN Query": f"{case['raw_time']:.4f}s",
+                        "Pre-Aggregated Query": f"{case['view_time']:.4f}s",
+                        "Speedup": f"{case['speedup']:.2f}x",
+                        "Raw Rows": case["raw_rows"],
+                        "Pre-Aggregated Rows": case["view_rows"],
+                    }
+                    for case in result["cases"]
+                ]
+            )
+            st.dataframe(benchmark_df, use_container_width=True, hide_index=True)
+            st.metric("Average Speedup", f"{result['average_speedup']:.2f}x")
 
         col1, col2, col3 = st.columns(3)
 
@@ -973,7 +1420,7 @@ def run_dashboard():
     _render_header()
     _render_sidebar()
 
-    chat_col, result_col = st.columns([0.9, 2.1], gap="large")
+    chat_col, result_col = st.columns([1.05, 2.95], gap="large")
 
     with chat_col:
         _render_chat_panel()
@@ -983,18 +1430,8 @@ def run_dashboard():
     charts = response.get("charts", []) if response else []
 
     with result_col:
-        result_left, result_right = st.columns([2, 1])
-
-        with result_left:
-            _render_kpis(result)
-            _render_charts(charts)
-
-        with result_right:
-            _render_performance_benchmark()
-
-            if response:
-                _render_nlp_insights(response.get("review_insights", {}))
-                _render_what_if(response.get("what_if"))
+        _render_kpis(result)
+        _render_charts(charts)
 
 
 def _render_chat_panel():
@@ -1214,6 +1651,65 @@ def _submit_chat_question(question):
     st.rerun()
 
 
+def _append_chat_tool_result(question, answer):
+    history = st.session_state.get("chat_history", [])
+    history.append(
+        {
+            "question": question,
+            "intent": "tool",
+            "view": "",
+            "timestamp": datetime.now().strftime("%H:%M:%S"),
+            "result_preview": [],
+            "advice_preview": [answer],
+        }
+    )
+    st.session_state["chat_history"] = history[-10:]
+
+
+def _submit_performance_benchmark_chat():
+    with st.spinner("正在运行预聚合视图性能对比测试..."):
+        result = benchmark_monthly_sales()
+
+    if result.get("cases"):
+        lines = [
+            "预聚合查询性能对比 Benchmark",
+            "",
+            "说明：以下对比展示同一分析问题在使用预聚合前后的查询耗时差异，用于证明预计算优化效果。",
+            "",
+            (
+                f"平均加速倍数：{result['average_speedup']:.2f}x；"
+                f"最高加速案例：{result['best_case']}。"
+            ),
+            "",
+        ]
+
+        for case in result["cases"]:
+            lines.extend(
+                [
+                    f"【{case['name']}】",
+                    f"- 分析问题：{case['question']}",
+                    f"- 原始 JOIN 查询：{case['raw_time']:.4f}s，{case['raw_rows']} 行",
+                    f"- 预聚合查询：{case['view_time']:.4f}s，{case['view_rows']} 行",
+                    f"- 加速倍数：{case['speedup']:.2f}x",
+                    "",
+                ]
+            )
+
+        answer = "\n".join(lines)
+    else:
+        answer = (
+            "Pre-Aggregated Query Performance Benchmark\n\n"
+            f"- Raw JOIN Query: {result['raw_time']:.4f}s\n"
+            f"- Pre-Aggregated Query: {result['view_time']:.4f}s\n"
+            f"- Speedup: {result['speedup']:.2f}x\n"
+            f"- Raw Query Rows: {result['raw_rows']}\n"
+            f"- View Query Rows: {result['view_rows']}"
+        )
+
+    _append_chat_tool_result("运行性能对比测试", answer)
+    st.rerun()
+
+
 def _render_chat_panel():
     st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
 
@@ -1246,6 +1742,93 @@ def _render_chat_panel():
             st.markdown("".join(bubble_html), unsafe_allow_html=True)
         else:
             st.info("当前会话还没有问题。先选择一个快捷问题，或在下方输入业务问题。")
+
+        st.markdown(
+            "<div class='quick-question-title'>快捷问题</div>",
+            unsafe_allow_html=True,
+        )
+
+        for row_start in range(0, len(EXAMPLE_QUESTIONS), 2):
+            cols = st.columns(2)
+            for offset, question_item in enumerate(
+                EXAMPLE_QUESTIONS[row_start: row_start + 2]
+            ):
+                with cols[offset]:
+                    if st.button(
+                        question_item,
+                        key=f"chat_example_submit_{row_start}_{offset}",
+                        use_container_width=True,
+                    ):
+                        _submit_chat_question(question_item)
+
+    default_question = st.session_state.get("selected_question", "")
+    question = st.text_area(
+        "输入业务问题",
+        value=default_question,
+        key="chat_question_input",
+        height=90,
+        placeholder="例如：查看月度销售趋势。下一轮可以继续问：那哪个州最高？",
+        label_visibility="collapsed",
+    )
+
+    if st.button("发送并分析", type="primary", use_container_width=True):
+        _submit_chat_question(question)
+
+
+def _render_chat_panel():
+    st.markdown("<div class='section-title'>Conversation</div>", unsafe_allow_html=True)
+
+    history = st.session_state.get("chat_history", [])
+
+    with st.container(height=720):
+        if history:
+            bubble_html = []
+
+            for item in history[-10:]:
+                user_text = html.escape(str(item.get("question", ""))).replace("\n", "<br>")
+                advice_preview = item.get("advice_preview", [])
+
+                if isinstance(advice_preview, list) and advice_preview:
+                    agent_text = "<br><br>".join(
+                        html.escape(str(text)) for text in advice_preview[:2]
+                    )
+                else:
+                    agent_text = "分析已完成，右侧展示了对应的指标、图表和决策建议。"
+
+                bubble_html.append(
+                    '<div class="bubble-row user-row">'
+                    f'<div class="bubble user-bubble">{user_text}</div>'
+                    '</div>'
+                    '<div class="bubble-row agent-row">'
+                    f'<div class="bubble agent-bubble">{agent_text}</div>'
+                    '</div>'
+                )
+
+            st.markdown("".join(bubble_html), unsafe_allow_html=True)
+        else:
+            st.info("当前会话还没有问题。先选择一个快捷问题，或在下方输入业务问题。")
+
+        st.markdown(
+            "<div class='quick-question-title'>快捷工具</div>",
+            unsafe_allow_html=True,
+        )
+
+        tool_cols = st.columns(2)
+        with tool_cols[0]:
+            if st.button(
+                "运行性能对比测试",
+                key="chat_tool_performance",
+                use_container_width=True,
+            ):
+                _submit_performance_benchmark_chat()
+
+        with tool_cols[1]:
+            if st.button(
+                "NLP评论洞察",
+                key="chat_tool_nlp",
+                use_container_width=True,
+            ):
+                _submit_chat_question("分析用户评论情感")
 
         st.markdown(
             "<div class='quick-question-title'>快捷问题</div>",

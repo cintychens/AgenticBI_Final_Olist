@@ -1,6 +1,31 @@
 from agents.llm_agent import generate_business_advice
 
 
+QUERY_DISPLAY_NAMES = {
+    "sales_query": "销售分析",
+    "state_query": "州销售分析",
+    "category_query": "品类销售分析",
+    "delivery_query": "配送表现分析",
+    "payment_query": "支付方式分析",
+    "seller_query": "卖家评分分析",
+    "review_query": "评论洞察分析",
+    "forecast_query": "销售预测分析",
+    "sales_anomaly_detection": "月度GMV异常检测",
+    "state_order_drop_anomaly": "州级订单量骤降检测",
+    "review_rate_spike_anomaly": "差评率突升检测",
+    "northeast_return_risk": "巴西东北部履约风险分析",
+    "top_negative_categories": "差评品类原因分析",
+    "weight_freight_scatter": "重量与运费关系分析",
+    "dimension_freight_analysis": "尺寸与运费关系分析",
+    "payment_installment_heatmap": "支付分期分析",
+    "state_geo_map": "州销售地图分析",
+}
+
+
+def _display_query_name(query_name):
+    return QUERY_DISPLAY_NAMES.get(query_name, query_name.replace("_", " "))
+
+
 def generate_advice(state):
 
     df = state.get("primary", {}).get("data")
@@ -145,6 +170,164 @@ def generate_advice(state):
             "建议将该卖家列入重点监控名单，分析差评原因并制定整改措施。"
         )
 
+    for query_name, payload in queries.items():
+
+        if query_name == "main_query":
+            continue
+
+        display_query_name = _display_query_name(query_name)
+
+        query_df = payload.get("data")
+
+        if query_df is None or query_df.empty:
+            continue
+
+        if "ym" in query_df.columns and "total_gmv" in query_df.columns:
+
+            period_gmv = query_df["total_gmv"].sum()
+
+            highlights.append(
+                f"{display_query_name}的总GMV为 {period_gmv:,.2f}。"
+            )
+
+        if "customer_state" in query_df.columns and "total_gmv" in query_df.columns:
+
+            top_state = query_df.sort_values(
+                by="total_gmv",
+                ascending=False,
+            ).iloc[0]
+
+            highlights.append(
+                f"{display_query_name}中销售额最高的州是 {top_state['customer_state']}，"
+                f"GMV为 {top_state['total_gmv']:,.2f}。"
+            )
+
+        if (
+            "customer_state" in query_df.columns
+            and "avg_delivery_days" in query_df.columns
+            and "on_time_rate" in query_df.columns
+        ):
+
+            avg_rate = query_df["on_time_rate"].mean()
+            display_rate = avg_rate / 100 if avg_rate > 1 else avg_rate
+            worst_state = query_df.sort_values(
+                by="avg_delivery_days",
+                ascending=False,
+            ).iloc[0]
+
+            highlights.append(
+                f"{display_query_name}的平均准时交付率为 {display_rate:.2%}；"
+                f"{worst_state['customer_state']} 的平均配送时长最高。"
+            )
+
+            recommendations.append(
+                "针对配送延迟较严重的州，建议检查仓储覆盖、承运商路线、"
+                "卖家发货效率以及承诺送达时间是否过于乐观。"
+            )
+
+        if "payment_type" in query_df.columns and "total_transactions" in query_df.columns:
+
+            top_payment = query_df.sort_values(
+                by="total_transactions",
+                ascending=False,
+            ).iloc[0]
+
+            avg_installments = query_df["avg_installments"].mean()
+
+            highlights.append(
+                f"{display_query_name}中最受欢迎的支付方式是 "
+                f"{top_payment['payment_type']}；平均分期数为 "
+                f"{avg_installments:.2f}。"
+            )
+
+        if "seller_id" in query_df.columns and "avg_review_score" in query_df.columns:
+
+            low_seller = query_df.sort_values(
+                by="avg_review_score",
+                ascending=True,
+            ).iloc[0]
+
+            highlights.append(
+                f"{display_query_name}中评分最低的卖家是 {low_seller['seller_id']}，"
+                f"平均评分为 {low_seller['avg_review_score']:.2f}。"
+            )
+
+        if (
+            "customer_state" in query_df.columns
+            and "risk_rate" in query_df.columns
+            and "risk_orders" in query_df.columns
+        ):
+
+            highest_risk = query_df.sort_values(
+                by="risk_rate",
+                ascending=False,
+            ).iloc[0]
+
+            highlights.append(
+                "东北部履约风险分析显示："
+                f"{highest_risk['customer_state']} 的取消/退货风险代理指标最高，"
+                f"风险率为 {highest_risk['risk_rate']:.2%}。"
+            )
+
+            recommendations.extend(
+                [
+                    "针对巴西东北部，优先复核承运商SLA，并为高风险州增加备用承运商。",
+                    "建立服务东北部高风险州的卖家质量观察名单，重点跟踪低评分和高取消风险卖家。",
+                    "通过提高预计送达时间准确性、加强包装质检和售后跟进，降低可预防的退货与取消风险。",
+                ]
+            )
+
+    state_sources = [
+        payload.get("data")
+        for payload in queries.values()
+        if payload.get("data") is not None
+        and "customer_state" in payload.get("data").columns
+        and "total_gmv" in payload.get("data").columns
+    ]
+    delivery_sources = [
+        payload.get("data")
+        for payload in queries.values()
+        if payload.get("data") is not None
+        and "customer_state" in payload.get("data").columns
+        and "on_time_rate" in payload.get("data").columns
+    ]
+    payment_sources = [
+        payload.get("data")
+        for payload in queries.values()
+        if payload.get("data") is not None
+        and "payment_type" in payload.get("data").columns
+        and "total_transactions" in payload.get("data").columns
+    ]
+
+    if state_sources and delivery_sources and payment_sources:
+
+        state_df = state_sources[0]
+        delivery_df = delivery_sources[0]
+        payment_df = payment_sources[0]
+
+        top_state = state_df.sort_values(
+            by="total_gmv",
+            ascending=False,
+        ).iloc[0]
+        top_payment = payment_df.sort_values(
+            by="total_transactions",
+            ascending=False,
+        ).iloc[0]
+        delivery_match = delivery_df[
+            delivery_df["customer_state"] == top_state["customer_state"]
+        ]
+
+        if not delivery_match.empty:
+            top_state_rate = delivery_match.iloc[0]["on_time_rate"]
+            top_state_rate = top_state_rate / 100 if top_state_rate > 1 else top_state_rate
+
+            highlights.append(
+                f"综合回答：销售额最高的州是 {top_state['customer_state']}，"
+                f"GMV为 {top_state['total_gmv']:,.2f}；该州准时交付率为 "
+                f"{top_state_rate:.2%}；平台最受欢迎的支付方式是 "
+                f"{top_payment['payment_type']}。"
+            )
+
     # =====================
     # 评论分析
     # =====================
@@ -159,14 +342,13 @@ def generate_advice(state):
         worst_category = negative_categories[0]
 
         highlights.append(
-            "Top negative category: "
-            f"{worst_category['product_category']} "
-            f"with {worst_category['negative_review_count']} negative reviews."
+            "差评最多的品类是 "
+            f"{worst_category['product_category']}，"
+            f"差评数量为 {worst_category['negative_review_count']}。"
         )
 
         recommendations.append(
-            "Prioritize category-level root-cause review for the top negative-review categories, "
-            "especially logistics delay, damaged items, and after-sales handling keywords."
+            "建议优先对差评最多的品类做根因复盘，重点检查物流延迟、商品破损和售后处理效率。"
         )
 
     anomaly_payload = queries.get("sales_anomaly_detection", {})
@@ -181,15 +363,65 @@ def generate_advice(state):
             latest_anomaly = anomalies.iloc[-1]
 
             highlights.append(
-                "Detected monthly GMV anomaly: "
-                f"{latest_anomaly['ym']} "
-                f"{latest_anomaly['anomaly_type']} "
-                f"(score {latest_anomaly['anomaly_score']:.2f})."
+                "检测到月度GMV异常："
+                f"{latest_anomaly['ym']} 出现 {latest_anomaly['anomaly_type']}，"
+                f"异常分数为 {latest_anomaly['anomaly_score']:.2f}。"
             )
 
             recommendations.append(
-                "Review campaign calendar, stock availability, delivery capacity, and data quality "
-                "for detected GMV anomaly months."
+                "建议针对GMV异常月份复核营销活动日历、库存可用性、配送承载能力和数据质量。"
+            )
+
+    state_drop_payload = queries.get("state_order_drop_anomaly", {})
+    state_drop_df = state_drop_payload.get("data")
+
+    if state_drop_df is not None and not state_drop_df.empty:
+
+        state_drop_anomalies = state_drop_df[
+            state_drop_df["anomaly_type"] != "normal"
+        ]
+
+        if not state_drop_anomalies.empty:
+
+            worst_drop = state_drop_anomalies.sort_values(
+                by="order_change_rate",
+                ascending=True,
+            ).iloc[0]
+
+            highlights.append(
+                "检测到州级订单量骤降："
+                f"{worst_drop['customer_state']} 在 {worst_drop['ym']} "
+                f"订单环比变化为 {worst_drop['order_change_rate']:.2%}。"
+            )
+
+            recommendations.append(
+                "建议针对订单骤降州复核该月营销活动、库存可用性、配送异常、"
+                "卖家供给变化和数据采集质量。"
+            )
+
+    review_spike_payload = queries.get("review_rate_spike_anomaly", {})
+    review_spike_df = review_spike_payload.get("data")
+
+    if review_spike_df is not None and not review_spike_df.empty:
+
+        review_spike_anomalies = review_spike_df[
+            review_spike_df["anomaly_type"] != "normal"
+        ]
+
+        if not review_spike_anomalies.empty:
+
+            latest_spike = review_spike_anomalies.iloc[-1]
+
+            highlights.append(
+                "检测到差评率突升："
+                f"{latest_spike['ym']} 负向评论率为 "
+                f"{latest_spike['negative_review_rate']:.2%}，"
+                f"较上一期上升 {latest_spike['rate_change']:.2%}。"
+            )
+
+            recommendations.append(
+                "建议抽样复核差评月份的评论内容，定位是否由物流延迟、商品质量、"
+                "错发漏发或售后响应变慢引起。"
             )
 
     dimension_payload = queries.get("dimension_freight_analysis", {})
@@ -203,14 +435,13 @@ def generate_advice(state):
         ).iloc[0]
 
         highlights.append(
-            "Highest average freight category: "
-            f"{high_freight_category['product_category']} "
-            f"({high_freight_category['avg_freight_value']:.2f})."
+            "平均运费最高的品类是 "
+            f"{high_freight_category['product_category']}，"
+            f"平均运费为 {high_freight_category['avg_freight_value']:.2f}。"
         )
 
         recommendations.append(
-            "Use product weight and volume to review freight pricing rules, packaging, "
-            "and carrier strategy for high-freight categories."
+            "建议结合商品重量和体积，复核高运费品类的计费规则、包装方案和承运商策略。"
         )
 
     # =====================
@@ -277,11 +508,11 @@ def generate_advice(state):
 
             if "positive_ratio" in review_insights:
 
-                llm_context.append(f"Positive: {review_insights['positive_ratio']}%")
+                llm_context.append(f"正向评论占比：{review_insights['positive_ratio']}%")
 
-                llm_context.append(f"Neutral: {review_insights['neutral_ratio']}%")
+                llm_context.append(f"中性评论占比：{review_insights['neutral_ratio']}%")
 
-                llm_context.append(f"Negative: {review_insights['negative_ratio']}%")
+                llm_context.append(f"负向评论占比：{review_insights['negative_ratio']}%")
 
         if forecast is not None:
 
